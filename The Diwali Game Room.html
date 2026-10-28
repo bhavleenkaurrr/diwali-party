@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>The Diwali Game Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=DM+Sans:wght@400;500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#16081f;--bg2:#2a1245;--pu:#7b3cff;--vm:#ff4d1f;--vmd:#962a0e;--cr:#f6ead7;--ch:#c8ccd8;--y:#ffc93c;
+--disp:'Bowlby One','Arial Black',Impact,sans-serif;--px:'Press Start 2P',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--cr);font:400 16px/1.55 'DM Sans',system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0;background:
+ linear-gradient(rgba(123,60,255,.16) 1px,transparent 1px) 0 0/44px 44px,
+ linear-gradient(90deg,rgba(123,60,255,.16) 1px,transparent 1px) 0 0/44px 44px;
+ -webkit-mask:radial-gradient(ellipse at 50% 40%,#000 10%,transparent 75%);mask:radial-gradient(ellipse at 50% 40%,#000 10%,transparent 75%);pointer-events:none}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--y);outline-offset:3px}
+.px{font-family:var(--px);font-size:10px;line-height:1.7;letter-spacing:.02em}
+h1,h2{font-family:var(--disp);font-weight:400;line-height:1.02;margin:0;text-shadow:3px 3px 0 var(--pu)}
+h1{font-size:clamp(34px,8.2vw,84px)}
+h2{font-size:clamp(30px,6.6vw,64px)}
+p{margin:0}
+.sub{font-size:clamp(16px,2.2vw,20px);max-width:36em;color:var(--cr);opacity:.9}
+svg.spr{display:block;shape-rendering:crispEdges}
+
+/* HUD */
+#hud{position:fixed;z-index:20;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;justify-content:space-between;
+ padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:linear-gradient(var(--bg) 60%,transparent)}
+#hud .l,#hud .r{display:flex;gap:8px;align-items:center}
+.chip{background:transparent;border:2px solid var(--ch);color:var(--ch);padding:9px 11px;min-height:40px;border-radius:4px;font-family:var(--px);font-size:9px;line-height:1}
+.chip:hover{background:var(--ch);color:var(--bg)}
+.chip[aria-pressed=true]{background:var(--y);border-color:var(--y);color:var(--bg)}
+.chip[hidden]{display:none}
+.lvl{display:flex;flex-direction:column;gap:5px;align-items:center}
+.pips{display:flex;gap:4px}.pips i{width:18px;height:6px;background:rgba(246,234,215,.2);transition:.3s}.pips i.on{background:var(--vm)}
+.lvl .px{font-size:8px;color:var(--ch)}
+
+/* screens */
+.scr{position:absolute;inset:0;padding:calc(76px + env(safe-area-inset-top)) 20px calc(48px + env(safe-area-inset-bottom));overflow-y:auto;overflow-x:hidden;
+ opacity:0;visibility:hidden;transform:translateY(18px) scale(.99);transition:opacity .45s,transform .45s,visibility 0s .45s}
+.scr.on{opacity:1;visibility:visible;transform:none;transition:opacity .45s,transform .45s}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:22px;min-height:100%;justify-content:center}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+
+/* arcade buttons */
+.btn{background:var(--vm);color:var(--bg);border:0;border-radius:6px;padding:18px 24px;min-height:56px;font-family:var(--px);font-size:11px;line-height:1.5;
+ box-shadow:0 6px 0 var(--vmd);transition:transform .08s,box-shadow .08s;position:relative}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--vmd)}
+.btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--vmd)}
+.btn.alt{background:var(--cr);box-shadow:0 6px 0 #8c8372}
+.btn.alt:hover{box-shadow:0 8px 0 #8c8372}.btn.alt:active{box-shadow:0 1px 0 #8c8372}
+.btn.big{font-size:clamp(11px,3.4vw,15px);padding:24px 28px;flex:1 1 260px}
+.pulse{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 6px 0 var(--vmd),0 0 0 8px rgba(255,77,31,.25)}}
+
+/* screen 0 */
+#s0 .wrap{align-items:center;text-align:center;gap:26px}
+#diya{background:none;border:0;padding:24px;border-radius:50%;position:relative}
+#diya .glow{position:absolute;left:50%;top:38%;width:320px;height:320px;margin:-160px 0 0 -160px;border-radius:50%;
+ background:radial-gradient(circle,rgba(255,150,40,.55),rgba(255,77,31,.18) 45%,transparent 70%);opacity:0;transition:opacity 1s;pointer-events:none}
+#diya.lit .glow{opacity:1;animation:flick 2.4s infinite}
+@keyframes flick{50%{transform:scale(1.07);opacity:.85}}
+#diya .flame{opacity:0;transition:opacity .4s}
+#diya.lit .flame{opacity:1;animation:flame .5s steps(2) infinite}
+@keyframes flame{50%{transform:translateY(-3px)}}
+#diya svg{position:relative}
+#hint{color:var(--y);animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+#reveal{display:flex;flex-direction:column;align-items:center;gap:20px;opacity:0;transform:translateY(14px);transition:opacity .8s .2s,transform .8s .2s;pointer-events:none}
+#reveal.on{opacity:1;transform:none;pointer-events:auto}
+#reveal h1 span{display:block;color:var(--vm)}
+.tag{color:var(--ch)}
+
+/* briefing */
+.file{background:var(--cr);color:var(--bg);border-radius:6px;overflow:hidden;box-shadow:8px 8px 0 var(--pu)}
+.file .bar{display:flex;justify-content:space-between;gap:10px;background:var(--bg2);color:var(--cr);padding:10px 14px}
+.file .bar b{font-weight:400;color:var(--y)}
+.info{display:grid;grid-template-columns:repeat(2,1fr)}
+.info div{padding:16px 18px;border-top:2px dashed rgba(22,8,31,.25)}
+.info div:nth-child(odd){border-right:2px dashed rgba(22,8,31,.25)}
+.info .px{color:var(--pu);font-size:9px;display:block;margin-bottom:6px}
+.info strong{font-size:clamp(16px,2.4vw,21px);line-height:1.25;display:block}
+.info .wide{grid-column:1/-1;border-right:0!important}
+.ph{color:var(--vmd);background:repeating-linear-gradient(135deg,rgba(255,77,31,.14) 0 6px,transparent 6px 12px);padding:0 4px;border-radius:2px}
+.status{display:flex;align-items:center;gap:10px;color:var(--y)}
+.dot{width:10px;height:10px;background:var(--vm);border-radius:50%;animation:blink 1s steps(2) infinite}
+@media(max-width:560px){.info{grid-template-columns:1fr}.info div:nth-child(odd){border-right:0}}
+
+/* cards */
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.card{text-align:left;border:2px solid var(--ch);background:rgba(42,18,69,.7);border-radius:8px;padding:0;overflow:hidden;position:relative;
+ transition:transform .2s,box-shadow .2s,border-color .2s;display:flex;flex-direction:column}
+.card:hover{transform:translateY(-6px) rotate(-.8deg);box-shadow:6px 6px 0 var(--pu)}
+.card .art{display:grid;place-items:center;padding:20px 0;border-bottom:2px solid var(--ch)}
+.card .txt{padding:14px 16px 18px;display:flex;flex-direction:column;gap:6px}
+.card h3{margin:0;font-family:var(--disp);font-weight:400;font-size:21px;line-height:1.1}
+.card p{font-size:14.5px;opacity:.9}
+.char{background:var(--cr);color:var(--bg);border-color:var(--cr)}
+.char .art{border-color:var(--bg)}
+.char .px{font-size:9px;color:var(--pu)}
+.char:hover .art svg{animation:wob .5s steps(4)}
+@keyframes wob{25%{transform:translateY(-6px) rotate(-4deg)}75%{transform:translateY(-3px) rotate(4deg)}}
+.char.sel{border-color:var(--vm);box-shadow:0 0 0 4px var(--vm),8px 8px 0 4px var(--bg2);transform:translateY(-6px)}
+.char .badge{position:absolute;top:10px;right:10px;background:var(--vm);color:var(--bg);padding:6px 8px;font-family:var(--px);font-size:8px;transform:scale(0);transition:transform .25s cubic-bezier(.3,1.8,.5,1)}
+.char.sel .badge{transform:scale(1) rotate(3deg)}
+.game:hover .art svg{animation:wob .5s steps(4)}
+.game.lock{border-style:dashed;background:repeating-linear-gradient(45deg,rgba(255,77,31,.1) 0 10px,transparent 10px 20px)}
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+#cmsg{min-height:3.2em;color:var(--y)}
+
+/* rsvp */
+.panel{border:2px solid var(--ch);border-radius:8px;padding:22px;background:rgba(42,18,69,.8);display:flex;flex-direction:column;gap:16px}
+.panel[hidden]{display:none}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips span{background:var(--cr);color:var(--bg);padding:8px 10px;border-radius:3px;font-weight:700;font-size:14px}
+form{display:flex;flex-direction:column;gap:14px}
+label,legend{font-family:var(--px);font-size:9px;color:var(--ch);padding:0}
+input[type=text],textarea{width:100%;margin-top:8px;background:var(--bg);color:var(--cr);border:2px solid var(--ch);border-radius:4px;padding:14px;font:inherit;font-size:16px}
+textarea{min-height:90px;resize:vertical}
+input:focus,textarea:focus{border-color:var(--y);outline:0}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:center;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--cr);padding:12px;border:2px solid rgba(200,204,216,.4);border-radius:4px;cursor:pointer}
+.opt input{accent-color:var(--vm);width:20px;height:20px}
+.err{color:#ff8a6b;font-size:14px;min-height:1.2em}
+.note{font-size:14px;background:rgba(255,201,60,.12);border-left:4px solid var(--y);padding:12px 14px;border-radius:2px}
+.hl{font-family:var(--disp);font-size:clamp(26px,6vw,46px);line-height:1.05;text-shadow:3px 3px 0 var(--pu)}
+
+/* overlays */
+#modal{position:fixed;inset:0;z-index:50;display:none;place-items:center;background:rgba(10,3,16,.8);padding:20px}
+#modal.on{display:grid}
+#modal .box{background:var(--cr);color:var(--bg);max-width:460px;width:100%;border-radius:8px;padding:26px;box-shadow:8px 8px 0 var(--vm);display:flex;flex-direction:column;gap:18px;animation:pop .3s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(.7) rotate(-3deg);opacity:0}}
+#modal .px{color:var(--pu)}
+#modal .q{font-family:var(--disp);font-size:clamp(22px,5vw,30px);line-height:1.15}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,30px);background:var(--vm);color:var(--bg);padding:14px 18px;border-radius:4px;
+ font-family:var(--px);font-size:10px;line-height:1.7;opacity:0;pointer-events:none;transition:.3s;z-index:60;max-width:calc(100vw - 32px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#star{position:fixed;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:15;background:none;border:0;color:var(--ch);opacity:.25;font-size:16px;padding:12px}
+#star:hover{opacity:.7}
+.sp{position:fixed;width:6px;height:6px;pointer-events:none;z-index:99;animation:fly .9s ease-out forwards}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+.fl{position:fixed;pointer-events:none;opacity:.22;animation:float 7s ease-in-out infinite;z-index:0}
+.fl>div{transition:transform .3s}
+@keyframes float{50%{margin-top:-16px}}
+.scr{z-index:1}
+@media(max-width:520px){#hud .chip.t span{display:none}.chip{padding:9px}.pips i{width:12px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<header id="hud">
+  <div class="l"><button class="chip" id="back" aria-label="Go back one level" hidden>&larr; BACK</button></div>
+  <div class="lvl"><span class="px" id="lvlTxt">LEVEL 01 / 05</span><div class="pips" id="pips"></div></div>
+  <div class="r">
+    <button class="chip t" id="luck" aria-label="Test your luck">&#9860; <span>TEST YOUR LUCK</span></button>
+    <button class="chip" id="snd" aria-pressed="false" aria-label="Toggle sound">SND OFF</button>
+  </div>
+</header>
+
+<div id="floaters" aria-hidden="true"></div>
+
+<main id="stage">
+<!-- LEVEL 1 -->
+<section class="scr on" id="s0" aria-label="Welcome">
+  <div class="wrap">
+    <button id="diya" aria-label="Light the diya"><span class="glow"></span><span id="diyaArt"></span></button>
+    <p class="px" id="hint">&gt; TAP THE DIYA TO BEGIN</p>
+    <div id="reveal">
+      <h1>Your invitation <span>has entered the chat.</span></h1>
+      <p class="px tag" id="eyebrow"></p>
+      <p class="sub" id="tagline"></p>
+      <button class="btn pulse" data-go="1">[ ENTER THE GAME ROOM &rarr; ]</button>
+    </div>
+  </div>
+</section>
+
+<!-- LEVEL 2 -->
+<section class="scr" id="s1" aria-label="Mission briefing">
+  <div class="wrap">
+    <h2>Mission: Diwali 2026</h2>
+    <p class="sub">The lights are on. The games are ready. Your competitive streak is about to become everyone&rsquo;s problem.</p>
+    <div class="file">
+      <div class="bar px"><span>FILE: GAME-ROOM-2026</span><b>TOP SECRET*</b></div>
+      <div class="info" id="info"></div>
+    </div>
+    <p class="px status"><span class="dot"></span>MISSION STATUS: RECRUITING PLAYERS</p>
+    <div class="row"><button class="btn" data-go="2">[ ACCEPT THE MISSION ]</button></div>
+  </div>
+</section>
+
+<!-- LEVEL 3 -->
+<section class="scr" id="s2" aria-label="Choose your player">
+  <div class="wrap">
+    <h2>Choose your character.</h2>
+    <p class="sub">Every game night has these people. Which one are you?</p>
+    <div class="grid g4" id="chars" role="radiogroup" aria-label="Characters"></div>
+    <p class="px" id="cmsg" aria-live="polite"></p>
+    <div class="row"><button class="btn" id="chosen">[ THAT&rsquo;S SO ME &rarr; ]</button></div>
+  </div>
+</section>
+
+<!-- LEVEL 4 -->
+<section class="scr" id="s3" aria-label="Games menu">
+  <div class="wrap">
+    <h2>Let the games begin.</h2>
+    <p class="sub">May the odds be ever in your favour. Because your friends certainly won&rsquo;t be.</p>
+    <div class="grid g3" id="games"></div>
+    <div class="row"><button class="btn" data-go="4">[ I&rsquo;M READY. TAKE ME TO RSVP &rarr; ]</button></div>
+  </div>
+</section>
+
+<!-- LEVEL 5 -->
+<section class="scr" id="s4" aria-label="RSVP portal">
+  <div class="wrap">
+    <div id="pick" class="wrap" style="min-height:0">
+      <h2>Every game needs its players.</h2>
+      <p class="sub">So, are you in or are you afraid of losing?</p>
+      <div class="row">
+        <button class="btn big" id="yes">[ I&rsquo;M IN. LET&rsquo;S PLAY. ]</button>
+        <button class="btn big alt" id="no">[ I FEAR COMPETITION. ]</button>
+      </div>
+    </div>
+    <div class="panel" id="nope" hidden>
+      <p class="hl">Aisa kuch bhi nahi hota. Please fucking RSVP. Thanks.</p>
+      <p class="sub">Takes 30 seconds. Nobody will mention the fear.</p>
+      <div class="row"><button class="btn" id="anyway">[ RSVP ANYWAY ]</button><button class="btn alt" id="nback">[ BACK ]</button></div>
+    </div>
+    <div class="panel" id="conf" hidden>
+      <p class="hl">Player confirmed.</p>
+      <p class="sub">Your presence has been requested. Your dignity is optional.</p>
+      <div class="chips" id="chips"></div>
+      <p class="note">Venue and time are in the mission file on Level 02. Screenshot it. You will forget.</p>
+      <form id="form" novalidate>
+        <div><label for="nm">YOUR NAME</label><input type="text" id="nm" name="name" autocomplete="name" maxlength="60"><div class="err" id="e1" role="alert"></div></div>
+        <fieldset><legend>ATTENDANCE</legend>
+          <label class="opt"><input type="radio" name="att" value="Yes, I'm in"> Yes, I&rsquo;m in</label>
+          <label class="opt"><input type="radio" name="att" value="Probably, will confirm"> Probably &ndash; I&rsquo;ll confirm closer to the day</label>
+          <div class="err" id="e2" role="alert"></div></fieldset>
+        <fieldset><legend>STAYING OVER?</legend>
+          <label class="opt"><input type="radio" name="stay" value="Yes, staying over"> Yes, I&rsquo;m staying over</label>
+          <label class="opt"><input type="radio" name="stay" value="No, heading home"> No, I&rsquo;m heading home</label>
+          <label class="opt"><input type="radio" name="stay" value="Not sure yet"> Not sure yet, depends on the vibe</label>
+          <div class="err" id="e3" role="alert"></div></fieldset>
+        <div><label for="nt">DIETARY NEEDS OR NOTES (OPTIONAL)</label><textarea id="nt" name="notes" maxlength="300"></textarea></div>
+        <div class="row"><button class="btn" type="submit" id="sub">[ LOCK IT IN ]</button><button class="btn alt" type="button" id="cback">[ BACK ]</button></div>
+      </form>
+      <div id="done" hidden></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<button id="star" aria-label="A small star">&#10022;</button>
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="mq"><div class="box"><span class="px" id="mh"></span><p class="q" id="mq"></p><div class="row"><button class="btn" id="again">[ AGAIN ]</button><button class="btn alt" id="close">[ CLOSE ]</button></div></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ===== EDIT YOUR PARTY HERE ===== */
+const CONFIG = {
+  eyebrow: "DIWALI GAME NIGHT 2026",
+  tagline: "Good games. Questionable decisions. Unnecessary competitiveness.",
+  details: {
+    date: "Saturday, 31 October 2026",
+    time: "8:30 PM",
+    location: "Sabharwal\u2019s",
+    dress: "Ethnic, festive, or anything you like",
+    type: "Diwali House Party + Game Night",
+    drinks: "Half BYOB. Whiskey, gin and vodka are covered (about a bottle each). Want something else? Bring your own.",
+    stay: "Too tipsy to head home? Say so in the RSVP and we’ll sort you a spot."
+  },
+  /* RSVP collection. Leave empty and nothing is sent anywhere.
+     Formspree: paste your endpoint, e.g. "https://formspree.io/f/xxxxxxx"
+     Google Forms / Supabase / others: replace the fetch() in sendRSVP() below. */
+  rsvpEndpoint: "",
+  whatsappNumber: "",   /* optional, digits only with country code, e.g. "447700900123" */
+  characters: [
+    {name:"The Mastermind", sp:"bulb", bg:"#7b3cff", desc:"Has a strategy for everything. Will explain why they lost for the next three business days.", msg:"Main character energy, but make it spreadsheets. Post-mortem loading."},
+    {name:"The Chaos Agent", sp:"bolt", bg:"#ff4d1f", desc:"Doesn\u2019t know the rules. Changes the rules. Somehow wins.", msg:"Rules? Never heard of her. Nobody was consulted."},
+    {name:"The Sore Loser", sp:"flag", bg:"#c8ccd8", desc:"Claims the game was rigged. Requests a rematch immediately.", msg:"It’s giving ‘the game was rigged’. Rematch pre-approved."},
+    {name:"The Social Player", sp:"cup", bg:"#ffc93c", desc:"Here for the snacks, the gossip, and the occasional suspiciously lucky win.", msg:"Snack table claimed. Tea will be spilled. Lowkey the real winner."}
+  ],
+  games: [
+    {t:"UNO", sp:"uno", d:"Friendships will be tested. Rules will be questioned."},
+    {t:"Taash", sp:"spade", d:"Poker, Teen Patti and more. Keep your cards close and your questionable decisions closer."},
+    {t:"Tambola", sp:"ticket", d:"Someone will shout ‘Houseful!’ too early. Everyone will pretend they didn’t see."},
+    {t:"Mafia", sp:"hat", d:"Everyone closes their eyes. Someone is lying. Trust no one, especially your best friend."},
+    {t:"Dumb Charades", sp:"mask", d:"Act like your life depends on it. Heads Up rules apply."},
+    {t:"Antakshari", sp:"note", d:"Last letter, next song. Someone will sing the wrong lyrics with full confidence."}
+  ],
+  challenges: [
+    "You must win at least one game tonight.",
+    "You are officially banned from blaming the rules.",
+    "Compliment your opponent before every rematch.",
+    "You must defend your losing streak with confidence.",
+    "Your next snack is determined by the group.",
+    "You have been assigned the role of unofficial referee.",
+    "Loser picks the next song. No skips, no sulking.",
+    "No phone for one full round. Touch grass, then touch cards.",
+    "You must say ‘it’s giving’ before every move.",
+    "Hype up the person you just beat. Loudly."
+  ],
+  secret: "Secret challenge: whoever finds you first picks your next game. No appeals."
+};
+
+/* ===== pixel sprites ===== */
+const COL={y:"#ffc93c",o:"#ff4d1f",p:"#7b3cff",c:"#f6ead7",d:"#c8ccd8",k:"#16081f"};
+const SPR={
+ bulb:["..cccc..",".cyyyyc.","cyyyyyyc","cyyyyyyc",".cyyyyc.","..cccc..","..dddd..","...dd..."],
+ bolt:["....oo..","...oo...","..oo....",".oooooo.","...oo...","..oo....",".oo.....","oo......"],
+ flag:["dooooo..","dooooo..","doooooo.","dooooo..","dooo....","d.......","d.......","dddd...."],
+ cup:[".k.k.k..","kkkkkkk.","kcccccck","kcccccck",".kcccck.",".kcccck.","..kcck..","..kkkk.."],
+ uno:["..oooo..",".oooooo.","oocccooo","occcccoo","oocccooo","oooccooo",".oooooo.","..oooo.."],
+ spade:["...cc...","..cccc..",".cccccc.","cccccccc","cccccccc",".cc..cc.","...cc...","..cccc.."],
+ mask:["cccccccc","c......c","c.k..k.c","c......c","c.kkkk.c","cccccccc","..cc....","...c...."],
+ qm:[".yyyyyy.","yy....yy",".....yy.","...yy...","..yy....","........","..yy....","..yy...."],
+ lock:["..dddd..",".d....d.",".d....d.","oooooooo","ooookooo","ooookooo","oooooooo","oooooooo"],
+ dice:["cccccccc","ckcccckc","cccccccc","ccckkccc","ccckkccc","cccccccc","ckcccckc","cccccccc"],
+ ticket:["cccccccc","ckckcckc","cccccccc","cckcckkc","cccccccc","ckcckcck","cccccccc","cccccccc"],
+ hat:["...dd...","..dddd..","..dddd..","pppppppp","dddddddd",".dddddd.","........","........"],
+ note:["...ccccc","...cc..c","...c...c","...c...c","ccc..ccc","cccc.ccc","ccc..cc.","........"],
+ star:["...yy...","...yy...","yyyyyyyy",".yyyyyy.","..yyyy..",".yy..yy.","yy....yy","........"]
+};
+function px(rows,s=8,extra=""){let r="";rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(COL[ch])r+=`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${COL[ch]}"/>`}));
+ return `<svg class="spr" viewBox="0 0 ${rows[0].length} ${rows.length}" width="${rows[0].length*s}" height="${rows.length*s}" aria-hidden="true" ${extra}>${r}</svg>`}
+const DIYA_FLAME=["...y...","..yoy..","..yoy..","...o..."];
+const DIYA_BODY=[".cccccccccc.","coooooooooooc",".coooooooooc.","..cccccccc.."];
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const store={get(k){try{return sessionStorage.getItem(k)}catch(e){return this.m[k]}},set(k,v){try{sessionStorage.setItem(k,v)}catch(e){this.m[k]=v}},m:{}};
+
+/* ===== sound (off by default) ===== */
+let snd=false,ac;
+function beep(f=440,t=.08,type="square"){if(!snd)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.value=.04;g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+t)}catch(e){}}
+$("#snd").onclick=e=>{snd=!snd;e.currentTarget.setAttribute("aria-pressed",snd);e.currentTarget.textContent=snd?"SND ON":"SND OFF";beep(660,.1)};
+document.addEventListener("click",e=>{if(e.target.closest(".btn,.card"))beep(520,.05)});
+
+/* ===== particles ===== */
+function burst(x,y,n=24){if(RM)return;const c=["#ff4d1f","#ffc93c","#7b3cff","#f6ead7"];
+ for(let i=0;i<n;i++){const s=document.createElement("i");s.className="sp";const a=Math.random()*6.28,d=40+Math.random()*110;
+ s.style.cssText=`left:${x}px;top:${y}px;--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d}px;background:${c[i%4]}`;document.body.appendChild(s);setTimeout(()=>s.remove(),950)}}
+const center=()=>[innerWidth/2,innerHeight/2];
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2600)}
+
+/* ===== floating decor + parallax ===== */
+[["dice",8,"6%","18%",2],["spade",8,"84%","24%",3],["star",8,"10%","72%",4],["uno",8,"80%","76%",2],["qm",6,"46%","90%",3]].forEach(([n,s,l,t,d],i)=>{
+ const f=document.createElement("div");f.className="fl";f.style.cssText=`left:${l};top:${t};animation-delay:${-i*1.3}s`;f.innerHTML=`<div data-d="${d}">${px(SPR[n],s)}</div>`;$("#floaters").appendChild(f)});
+if(!RM)addEventListener("pointermove",e=>{const x=e.clientX/innerWidth-.5,y=e.clientY/innerHeight-.5;$$("#floaters [data-d]").forEach(el=>el.style.transform=`translate(${x*el.dataset.d*14}px,${y*el.dataset.d*14}px)`)});
+
+/* ===== navigation ===== */
+const N=5;let cur=0;
+$("#pips").innerHTML=Array(N).fill("<i></i>").join("");
+function go(n){cur=n;$$(".scr").forEach((s,i)=>{s.classList.toggle("on",i===n);if(i===n)s.scrollTop=0});
+ $$("#pips i").forEach((p,i)=>p.classList.toggle("on",i<=n));
+ $("#lvlTxt").textContent=`LEVEL 0${n+1} / 0${N}`;$("#back").hidden=n===0;beep(300+n*80,.1)}
+$$("[data-go]").forEach(b=>b.onclick=()=>go(+b.dataset.go));
+$("#back").onclick=()=>go(Math.max(0,cur-1));
+go(0);
+
+/* ===== level 1: diya ===== */
+$("#diyaArt").innerHTML=`<div class="flame" style="width:84px;margin:0 auto -4px;display:block">${px(DIYA_FLAME,12)}</div>`.replace('class="flame" style="width:84px;margin:0 auto -4px;display:block"','class="flame" style="display:flex;justify-content:center;margin-bottom:-4px"')+px(DIYA_BODY,14);
+$("#eyebrow").textContent=CONFIG.eyebrow;$("#tagline").textContent=CONFIG.tagline;
+function light(){const d=$("#diya");if(d.classList.contains("lit"))return;d.classList.add("lit");$("#hint").style.visibility="hidden";
+ const r=d.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height*.3,34);setTimeout(()=>burst(r.left+r.width/2-70,r.top-30,16),250);setTimeout(()=>burst(r.left+r.width/2+70,r.top-10,16),450);
+ beep(880,.2,"triangle");setTimeout(()=>$("#reveal").classList.add("on"),RM?0:700)}
+$("#diya").onclick=light;
+
+/* ===== level 2: briefing ===== */
+const D=CONFIG.details,rows=[["DATE",D.date],["TIME",D.time],["LOCATION",D.location,1],["DRESS CODE",D.dress],["PARTY TYPE",D.type],["DRINKS",D.drinks],["SLEEPOVER",D.stay]];
+$("#info").innerHTML=rows.map(([k,v,w],i)=>`<div class="${w||i>=3?"wide":""}"><span class="px">${k}</span><strong>${/^\[/.test(v)?`<span class="ph">${v}</span>`:v}</strong></div>`).join("");
+
+/* ===== level 3: characters ===== */
+let pick=+(store.get("char")??-1);
+$("#chars").innerHTML=CONFIG.characters.map((c,i)=>`<button class="card char" role="radio" aria-checked="false" data-i="${i}"><span class="badge">P${i+1} SELECTED</span>
+ <span class="art" style="background:${c.bg}">${px(SPR[c.sp],9)}</span><span class="txt"><span class="px">PLAYER 0${i+1}</span><h3>${c.name}</h3><p>${c.desc}</p></span></button>`).join("");
+function mark(){$$(".char").forEach((b,i)=>{b.classList.toggle("sel",i===pick);b.setAttribute("aria-checked",i===pick)});$("#cmsg").textContent=pick>=0?"> "+CONFIG.characters[pick].msg:""}
+$$(".char").forEach(b=>b.onclick=()=>{pick=+b.dataset.i;store.set("char",pick);mark();const r=b.getBoundingClientRect();burst(r.left+r.width/2,r.top+60,14)});
+$("#chosen").onclick=e=>{if(pick<0){$("#cmsg").textContent="> PICK A PLAYER FIRST. NO SPECTATORS.";$("#chars").classList.remove("shake");void $("#chars").offsetWidth;$("#chars").classList.add("shake");return}go(3)};
+mark();
+
+/* ===== level 4: games ===== */
+$("#games").innerHTML=CONFIG.games.map((g,i)=>`<button class="card game ${g.locked?"lock":""}" data-i="${i}"><span class="art">${px(SPR[g.sp],8)}</span><span class="txt"><h3>${g.t}</h3><p>${g.d}</p></span></button>`).join("");
+$$(".game").forEach(b=>b.onclick=()=>{const g=CONFIG.games[+b.dataset.i],r=b.getBoundingClientRect();
+ if(g.locked){toast("CLASSIFIED. SOME SURPRISES ARE BETTER LEFT UNKNOWN.");b.classList.remove("shake");void b.offsetWidth;b.classList.add("shake");beep(120,.25,"sawtooth")}
+ else burst(r.left+r.width/2,r.top+50,10)});
+
+/* ===== challenge generator + secret ===== */
+let last=-1;
+function showModal(h,q){$("#mh").textContent=h;$("#mq").textContent=q;$("#modal").classList.add("on");$("#again").style.display=h==="YOUR CHALLENGE"?"":"none";$("#close").focus()}
+function luck(){let i;do{i=Math.floor(Math.random()*CONFIG.challenges.length)}while(i===last&&CONFIG.challenges.length>1);last=i;showModal("YOUR CHALLENGE",CONFIG.challenges[i]);beep(700,.08);setTimeout(()=>beep(900,.1),90)}
+$("#luck").onclick=luck;$("#again").onclick=luck;
+$("#close").onclick=()=>$("#modal").classList.remove("on");
+$("#modal").onclick=e=>{if(e.target.id==="modal")$("#modal").classList.remove("on")};
+addEventListener("keydown",e=>{if(e.key==="Escape")$("#modal").classList.remove("on")});
+let taps=0;$("#star").onclick=e=>{taps++;beep(400+taps*100,.06);if(taps<5){if(taps>2)toast(`${5-taps} MORE...`);return}taps=0;burst(innerWidth-20,innerHeight-20,40);showModal("LEVEL ??",`YOU FOUND THE SECRET LEVEL. ${CONFIG.secret}`)};
+
+/* ===== level 5: rsvp ===== */
+const show=id=>["#pick","#nope","#conf"].forEach(s=>$(s).hidden=s!==id);
+$("#pick").hidden=false;
+function openForm(){show("#conf");const c=pick>=0?CONFIG.characters[pick].name:"No character chosen yet";
+ $("#chips").innerHTML=[`Player: ${c}`,`Date: ${D.date}`].map(t=>`<span>${t}</span>`).join("");
+ const [x,y]=center();burst(x,y*.8,50);setTimeout(()=>burst(x-90,y*.6,24),250);setTimeout(()=>burst(x+90,y*.6,24),450);beep(784,.12);setTimeout(()=>beep(1046,.18),120);$("#conf").scrollIntoView({behavior:RM?"auto":"smooth"})}
+$("#yes").onclick=openForm;$("#anyway").onclick=openForm;
+$("#no").onclick=()=>{show("#nope");beep(180,.3,"sawtooth")};
+$("#nback").onclick=()=>show("#pick");$("#cback").onclick=()=>show("#pick");
+
+async function sendRSVP(data){
+  if(!CONFIG.rsvpEndpoint)return {sent:false};
+  const r=await fetch(CONFIG.rsvpEndpoint,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(data)});
+  if(!r.ok)throw new Error("Bad response");return {sent:true};
+}
+$("#form").addEventListener("submit",async e=>{e.preventDefault();
+ const name=$("#nm").value.trim(),att=(document.querySelector("input[name=att]:checked")||{}).value,notes=$("#nt").value.trim();
+ $("#e1").textContent=name.length<2?"Enter your name so the host knows who to blame.":"";
+ $("#e2").textContent=att?"":"Pick one. Even \u2018probably\u2019 counts.";
+ const stay=(document.querySelector("input[name=stay]:checked")||{}).value;$("#e3").textContent=stay?"":"Tell us so we can plan beds and blankets.";if(name.length<2){$("#nm").focus();return}if(!att||!stay)return;
+ const data={name,attendance:att,stayover:stay,notes,character:pick>=0?CONFIG.characters[pick].name:"",date:D.date};
+ const btn=$("#sub");btn.disabled=true;btn.textContent="[ SENDING... ]";
+ try{const res=await sendRSVP(data);$("#form").hidden=true;const d=$("#done");d.hidden=false;
+  const msg=`Hi! RSVP for Diwali Game Night (${D.date}).\nName: ${name}\nAttendance: ${att}\nStaying over: ${stay}\nCharacter: ${data.character||"undecided"}${notes?"\nNotes: "+notes:""}`;
+  const wa=`https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(msg)}`;
+  d.innerHTML=res.sent?`<p class="hl">RSVP sent, ${esc(name)}.</p><p class="sub">The host has your reply. No take-backs, bestie.</p>`
+   :`<p class="hl">Ready to send, ${esc(name)}.</p><p class="note"><b>Not sent yet.</b> No RSVP service is connected to this page, so nothing has left your device. Tap below to send your reply to the host on WhatsApp.</p>
+   <div class="row"><a class="btn" style="text-decoration:none;display:inline-block" href="${wa}" target="_blank" rel="noopener">[ SEND VIA WHATSAPP ]</a><button class="btn alt" id="cp" type="button">[ COPY REPLY ]</button></div>`;
+  const cp=$("#cp");if(cp)cp.onclick=()=>{(navigator.clipboard?navigator.clipboard.writeText(msg):Promise.reject()).then(()=>toast("COPIED. NOW SEND IT TO THE HOST."),()=>toast("COPY BLOCKED. USE THE WHATSAPP BUTTON."))};
+  const [x,y]=center();burst(x,y,40);
+ }catch(err){btn.disabled=false;btn.textContent="[ LOCK IT IN ]";$("#e1").textContent="Couldn\u2019t send that. Check your connection and try again."}});
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+</script>
+</body>
+</html>
